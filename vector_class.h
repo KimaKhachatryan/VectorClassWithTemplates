@@ -40,6 +40,19 @@ public:
 	void clear();
 //	void emplace(T value);
 //	void emplace_back(T value);
+
+// operator overloading
+	T& operator[] (size_t index);
+	Vector& operator= (const Vector&);
+	Vector& operator= (Vector&&);
+	std::ostream& operator<< (std::ostream& obj)
+	{
+		for (size_t i = 0; i < m_size; ++i) {
+			obj << m_ptr[i] << " ";
+		}
+
+		return obj;
+	}
 };
 
 /*

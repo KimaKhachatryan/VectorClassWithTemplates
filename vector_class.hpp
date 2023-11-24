@@ -367,6 +367,52 @@ void Vector<T>::clear()
 	}
 }
 
+//operator overloding functions
+
+//subscrip operator
+template <typename T>
+T& Vector<T>::operator[](size_t index)
+{
+	if (index >= this->m_size) {
+		std::cout << "Segmantation fault." << std::endl;
+		exit(0);
+	} 
+	 return thihs->m_ptr[index];
+}
+//assignment operator
+template <typename T>
+Vector& Vector<T>::operator= (const Vector&)
+{
+	this->m_size = obj.m_size;
+	this->m_capacity = obj.m_capacity;
+	this->m_ptr = new T[obj.m_capacity];
+	
+	for (size_t i = 0; i < obj.m_size; ++i) {
+		this->m_ptr[i] = obj.m_ptr[i];
+	}
+}
+
+//move assignment operator
+template <typename T>
+Vector& Vector<T>::operator= (Vector&&)
+{
+	this->m_size = obj.m_size;
+	this->m_capacity = obj.m_capacity;
+	this->m_ptr = obj.m_ptr;
+
+	obj.m_size = 0;
+	obj.m_capacity = 0;
+	obj.m_ptr = nullptr;
+}
+
+//operator << 
+template<typename T>
+std::ostream& operator<< (std::ostream& os, MyVector<T>& vec)
+{
+	return vec.operator<<(os);
+}
+
+
 
 
 

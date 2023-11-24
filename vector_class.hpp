@@ -37,12 +37,14 @@ Vector<T>::Vector(std::initializer_list<T> list)
 template <typename T>
 Vector<T>::Vector(const Vector<T>& obj)
 {
-	this->m_size = obj.m_size;
-	this->m_capacity = obj.m_capacity;
-	this->m_ptr = new T[obj.m_capacity];
+	if (this->m_ptr != &obj) {
+		this->m_size = obj.m_size;
+		this->m_capacity = obj.m_capacity;
+		this->m_ptr = new T[obj.m_capacity];
 	
-	for (size_t i = 0; i < obj.m_size; ++i) {
-		this->m_ptr[i] = obj.m_ptr[i];
+		for (size_t i = 0; i < obj.m_size; ++i) {
+			this->m_ptr[i] = obj.m_ptr[i];
+		}
 	}
 }
 
@@ -54,9 +56,6 @@ Vector<T>::Vector(Vector<T>&& obj)
 	this->m_capacity = obj.m_capacity;
 	this->m_ptr = obj.m_ptr;
 
-	obj.m_size = 0;
-	obj.m_capacity = 0;
-	obj.m_ptr = nullptr;
 }
 
 //destructor
@@ -65,7 +64,10 @@ Vector<T>::~Vector()
 {
 	m_size = 0;
 	m_capacity = 0;
-	delete[] m_ptr;
+
+	if (this->m_ptr) { 
+		delete[] m_ptr;
+	}
 	m_ptr = nullptr;
 }
 
@@ -377,24 +379,30 @@ T& Vector<T>::operator[](size_t index)
 		std::cout << "Segmantation fault." << std::endl;
 		exit(0);
 	} 
-	 return thihs->m_ptr[index];
+	 return this->m_ptr[index];
 }
 //assignment operator
 template <typename T>
-Vector& Vector<T>::operator= (const Vector&)
+Vector<T>& Vector<T>::operator= (const Vector& obj)
 {
-	this->m_size = obj.m_size;
-	this->m_capacity = obj.m_capacity;
-	this->m_ptr = new T[obj.m_capacity];
+	if (this->m_ptr != &obj) {
+		if (this->m_ptr) {
+			delete[] this->m_ptr;
+		}
+
+		this->m_size = obj.m_size;
+		this->m_capacity = obj.m_capacity;
+		this->m_ptr = new T[obj.m_capacity];
 	
-	for (size_t i = 0; i < obj.m_size; ++i) {
-		this->m_ptr[i] = obj.m_ptr[i];
+		for (size_t i = 0; i < obj.m_size; ++i) {
+			this->m_ptr[i] = obj.m_ptr[i];
+		}
 	}
 }
 
 //move assignment operator
 template <typename T>
-Vector& Vector<T>::operator= (Vector&&)
+Vector<T>& Vector<T>::operator= (Vector&& obj)
 {
 	this->m_size = obj.m_size;
 	this->m_capacity = obj.m_capacity;
@@ -407,9 +415,9 @@ Vector& Vector<T>::operator= (Vector&&)
 
 //operator << 
 template<typename T>
-std::ostream& operator<< (std::ostream& os, MyVector<T>& vec)
+std::ostream& operator<< (std::ostream& os, Vector<T>& obj)
 {
-	return vec.operator<<(os);
+	return obj.operator<<(os);
 }
 
 

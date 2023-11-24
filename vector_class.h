@@ -43,8 +43,8 @@ public:
 
 // operator overloading
 	T& operator[] (size_t index);
-	Vector& operator= (const Vector&);
-	Vector& operator= (Vector&&);
+	Vector<T>& operator= (const Vector&);
+	Vector<T>& operator= (Vector&&);
 	std::ostream& operator<< (std::ostream& obj)
 	{
 		for (size_t i = 0; i < m_size; ++i) {
@@ -55,13 +55,7 @@ public:
 	}
 };
 
-/*
-template<>
-class vector<bool> {
-	
-};
-*/
-
+#include "bool_vector.h"
 #include "vector_class.hpp"
 
 

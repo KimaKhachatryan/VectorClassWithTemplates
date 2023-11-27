@@ -3,5 +3,5 @@
 
 int main()
 {	
-	std::cout << (32 - 19) % 16 << std::endl;
+	std::cout << 5 % 8 << 14 % 8  << std::endl;
 }

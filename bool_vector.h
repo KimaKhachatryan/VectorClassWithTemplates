@@ -6,6 +6,7 @@ private:
 	unsigned short m_cleaner;
 	size_t m_size;
 	size_t m_capacity;
+	size_t m_false_capacity;
 	size_t m_index;
 	enum {
 		BIT_COUNT = sizeof(unsigned short) * 8
@@ -23,15 +24,15 @@ public:
 	~Vector();
 	
 // member functions prototypes
-	void allocator();
+	void allocator(size_t new_capacity = 1);
 	void reallocator(size_t new_capacity = 1);
 	size_t size();
 	size_t max_size();
 	size_t capacity();
 	void resize(size_t new_size, bool value = 0);
-//	void reserve(size_t new_capacity);
+	void reserve(size_t new_capacity);
 	bool empty();
-//	void shrink_to_fit();
+	void shrink_to_fit();
 //	unsigned short& at(size_t index);
 //	unsigned short& front();
 //	unsigned short& back();

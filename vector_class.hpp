@@ -154,7 +154,6 @@ void Vector<T>::reserve(size_t new_capacity)
 		}
 	} 
 
-this->m_capacity = new_capacity;
 }
 
 //returns whether the vector is empty 

@@ -3,6 +3,9 @@ Vector<bool>::Vector()
 {
 	this->m_size = 0;
 	this->m_capacity = 0;
+	this->m_cleaner = 0;
+	this->m_index = 0;
+	this->m_shifter = (1 << (BIT_COUNT - 1));
 	this->m_ptr = nullptr;
 }
 
@@ -15,10 +18,13 @@ Vector<bool>::Vector()
 //destructor
 Vector<bool>::~Vector()
 {
-	m_size = 0;
-	m_capacity = 0;
-	delete[] m_ptr;
-	m_ptr = nullptr;
+	this->m_size = 0;
+	this->m_capacity = 0;
+	this->m_cleaner = 0;
+	this->m_index = 0;
+	this->m_shifter = (1 << (BIT_COUNT - 1));
+	delete[] this->m_ptr;
+	this->m_ptr = nullptr;
 }
 
 //allocator that allocates a new space 
@@ -34,6 +40,7 @@ void Vector<bool>::reallocator(size_t new_capacity)
 	this->m_capacity += new_capacity * BIT_COUNT;
 	
 	unsigned short* tmp_ptr = new unsigned short[this->m_capacity / BIT_COUNT];
+	
 	for (size_t i = 0; i < this->m_capacity / BIT_COUNT - 1; ++i) {
 		tmp_ptr[i] = this->m_ptr[i];
 	}
@@ -61,6 +68,115 @@ size_t Vector<bool>::capacity()
 }
 
 //function that changes vector size
+void Vector<bool>::resize(size_t new_size, bool value)
+{
+	if (new_size == this->m_size) {
+		return;
+	} else if (this->m_ptr == nullptr) {
+		std::cout << "Segmentation fault" << std::endl;
+		exit(0);
+	} else if (new_size == 0) {
+		Vector<bool>::clear();
+	}
+	
+	if (new_size > this->m_size) {
+		if (new_size > this->m_capacity) {
+			if ((this->m_capacity - this->m_size) % BIT_COUNT != 0) {
+				this->m_index = this->m_size / BIT_COUNT;
+				
+				if (value) {
+					for(size_t i = (this->m_capacity - this->m_size) % BIT_COUNT; i > 0; --i) {
+						Vector<bool>::push_back(true);
+					}
+				}
+				
+				Vector<bool>::reallocator((new_size - this->m_capacity) / BIT_COUNT + 1);
+				
+				if (value) {
+					if (this->m_capacity % new_size) {
+						for (size_t i = this->m_index + 1; i < this->m_capacity / BIT_COUNT - 1; ++i) {
+							this->m_ptr[i] -= 1;
+							this->m_index += 1;
+						}
+						
+						this->m_shifter = (1 << (BIT_COUNT - 1));
+						for(size_t i = BIT_COUNT - (this->m_capacity - new_size) % BIT_COUNT; i > 0; --i) {
+							Vector<bool>::push_back(true);
+						}
+					} else {
+						for (size_t i = this->m_index + 1; i < this->m_capacity / BIT_COUNT - 1; ++i) {
+							this->m_ptr[i] -= 1;
+							this->m_index += 1;
+						}
+						
+						this->m_shifter = (1 << (BIT_COUNT - 1));
+					}
+				}
+				
+			} else {
+				this->m_index = this->m_size / BIT_COUNT;
+				
+				Vector<bool>::reallocator((new_size - this->m_capacity) / BIT_COUNT + 1);
+				
+				if (value) {
+					if (this->m_capacity % new_size) {
+						for (size_t i = this->m_index + 1; i < this->m_capacity / BIT_COUNT - 1; ++i) {
+							this->m_ptr[i] -= 1;
+							this->m_index += 1;
+						}
+						
+						this->m_shifter = (1 << (BIT_COUNT - 1));
+						for(size_t i = BIT_COUNT - (this->m_capacity - new_size) % BIT_COUNT; i > 0; --i) {
+							Vector<bool>::push_back(true);
+						}
+					} else {
+						for (size_t i = this->m_index + 1; i < this->m_capacity / BIT_COUNT - 1; ++i) {
+							this->m_ptr[i] -= 1;
+							this->m_index += 1;
+						}
+						
+						this->m_shifter = (1 << (BIT_COUNT - 1));
+					}
+				}
+			}
+		} else {
+			this->m_index = this->m_size / BIT_COUNT;
+				
+			if (value) {
+				for(size_t i = BIT_COUNT - (this->m_capacity - new_size); i > 0; --i) {
+					Vector<bool>::push_back(true);
+				}
+			}
+		}	
+	} else if (new_size < this->m_size) {
+		this->m_index = this->m_size / BIT_COUNT;
+		
+		for (size_t i = this->m_index; i > new_size / BIT_COUNT; --i) {
+			this->m_ptr[i] = 0;
+			this->m_index -= 1;
+		}
+		
+		this->m_shifter = 0;
+		this->m_size = (this->m_index + 1) * BIT_COUNT;
+		
+		for (size_t i = 0; i < this->m_size - new_size; ++i) {
+			if (!this->m_shifter) {
+				this->m_shifter = 1;
+			} else {
+				this->m_shifter <<= 1;
+			}
+			
+			--this->m_cleaner;
+			this->m_cleaner ^= this->m_shifter;
+			
+			this->m_ptr[this->m_index] &= this->m_cleaner; 
+			this->m_cleaner = 0;
+		}
+	}
+	
+	this->m_size = new_size;
+	this->m_cleaner = 0;
+}
 
 //function that reserves a space...
 //he function call does not cause a reallocation 
@@ -90,13 +206,42 @@ void Vector<bool>::push_back(bool value)
 		Vector<bool>::reallocator(1);
 	}
 
-	int index = this->m_capacity / (sizeof(unsigned short) * 8) - 1;
-	this->m_ptr[index] ^= value;
-	this->m_ptr[index] <<= 1; 
+	this->m_index = this->m_size / BIT_COUNT;
+	
+	if (value) {
+		this->m_ptr[m_index] ^= m_shifter;
+	}
+	
+	--this->m_cleaner;
+	this->m_cleaner ^= this->m_shifter;
+	this->m_shifter >>= 1;
+	this->m_shifter &= this->m_cleaner;
+	this->m_cleaner = 0;
+	
+	if (!this->m_shifter) {
+		this->m_shifter = (1 << (BIT_COUNT - 1));
+	}
+	
 	++this->m_size;
 }
 
 //removes the last element in the vector
+void Vector<bool>::pop_back()
+{
+	if (!this->m_size) {
+		std::cout << "Segmantation fault." << std::endl;
+		exit(0);
+	} 
+	
+	this->m_shifter <<= 1;
+	--this->m_cleaner;
+	this->m_cleaner ^= this->m_shifter;
+	this->m_index = this->m_size / BIT_COUNT;
+	this->m_ptr[m_index] &= this->m_cleaner;
+	
+	--this->m_size;	
+	this->m_cleaner = 0;
+}
 
 // functions extend the vector by inserting new elements before the element at the specified position
 
@@ -107,8 +252,32 @@ void Vector<bool>::push_back(bool value)
 //exchanges the content of the container by the content of obj, which is another vector object of the same type 
 
 //removes all elements from the vector 
+void Vector<bool>::clear()
+{
+	if (this->m_ptr) {
+		this->m_index = this->m_size / BIT_COUNT;
+		
+		for (int i = this->m_index; i >= 0; --i) {
+			this->m_ptr[i] = 0;
+		}
+		
+		this->m_size = 0;
+	}
+}
 
-
+//print function for my testes
+void Vector<bool>::print()
+{	
+	for (size_t i = 0; i < this->m_capacity / BIT_COUNT; ++i) {
+		unsigned short printer = 1 << (BIT_COUNT - 1);
+		
+		for (int j = BIT_COUNT; j > 0; --j) {
+			std::cout << bool(this->m_ptr[i] & printer) << " ";
+			printer >>= 1;
+ 		}
+	}
+	std::cout << std::endl;
+}
 
 
 

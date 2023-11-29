@@ -9,6 +9,13 @@ Vector<bool>::Vector()
 	this->m_shifter = (1 << (BIT_COUNT - 1));
 	this->m_ptr = nullptr;
 }
+//default constructor for Reference class
+Vector<bool>::Reference::Reference(unsigned short* m_ptr, size_t position):
+	r_ptr(m_ptr),
+	r_index(position) {
+		r_value = m_ptr[position / BIT_COUNT] & (1 << BIT_COUNT - 1 - position % BIT_COUNT); 
+	}
+
 
 //parameterized contructor
 //Initializer_list constructor
@@ -236,6 +243,10 @@ void Vector<bool>::shrink_to_fit()
 //functions which return references 
 
 //returns a direct pointer to the memory array used internally by the vector to store its owned elements
+unsigned short* Vector<bool>::data()
+{
+	return this->m_ptr;
+}
 
 //assigns new contents to the vector
 //the new contents are count elements, each initialized to a copy of value 
@@ -287,12 +298,50 @@ void Vector<bool>::pop_back()
 }
 
 // functions extend the vector by inserting new elements before the element at the specified position
+void Vector<bool>::insert(size_t position, bool value)
+{
+
+	if (!this->m_ptr || position >= this->m_size) {
+		std::cout << "Segmantation fault." << std::endl;
+		exit(0);
+	} 
+	if (m_size + 1 > m_capacity) {
+		reallocator(1);
+	}
+
+}
 
 //removes from the vector single element (position) 
 
 //removes from the vector a range of elements
 
 //exchanges the content of the container by the content of obj, which is another vector object of the same type 
+void Vector<bool>::swap(Vector<bool>& obj) 
+{
+	std::swap(this->m_size, obj.m_size);
+	std::swap(this->m_capacity, obj.m_capacity);
+	std::swap(this->m_false_capacity, obj.m_false_capacity);
+	std::swap(this->m_index, obj.m_index);
+	std::swap(this->m_shifter, obj.m_shifter);
+	std::swap(this->m_cleaner, obj.m_cleaner);
+	std::swap(this->m_ptr, obj.m_ptr);
+
+}
+
+//exchanges bits at positions i and j
+void Vector<bool>::bit_swap(unsigned short* ptr, unsigned short i, unsigned short j)
+{
+	i = BIT_COUNT - i;
+	j = BIT_COUNT - j;
+
+	bool i_bit = bool(*ptr & (1 << i));
+	bool j_bit = bool(*ptr & (1 << j));
+	
+	if (i_bit != j_bit) {
+		*ptr ^= (1 << i);
+		*ptr ^= (1 << j);
+	}
+}
 
 //removes all elements from the vector 
 void Vector<bool>::clear()
@@ -305,6 +354,7 @@ void Vector<bool>::clear()
 		}
 		
 		this->m_size = 0;
+		this->m_shifter = 1 << (BIT_COUNT - 1);
 	}
 }
 
@@ -330,8 +380,19 @@ void Vector<bool>::print()
 	std::cout << std::endl;
 }
 
+//operator overloading functions
+//
+//subscript operator
+Vector<bool>::Reference Vector<bool>::operator[](size_t position)
+{
+	return Vector<bool>::Reference(m_ptr, position);
+}
 
-
+//bool cast operator ()
+Vector<bool>::Reference::operator bool()
+{
+	return r_value;
+}
 
 
 

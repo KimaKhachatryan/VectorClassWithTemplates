@@ -1,7 +1,8 @@
 #include <iostream>
-
+#include <vector>
 
 int main()
 {	
-	std::cout << 5 % 8 << 14 % 8  << std::endl;
+	std::vector<int> vec;
+	vec.insert(vec.begin(), 5);
 }

@@ -9,14 +9,30 @@ Vector<bool>::Vector()
 	this->m_shifter = (1 << (BIT_COUNT - 1));
 	this->m_ptr = nullptr;
 }
-//default constructor for Reference class
+//parametrized constructor for Reference class
 Vector<bool>::Reference::Reference(unsigned short* m_ptr, size_t position):
 	r_ptr(m_ptr),
 	r_index(position) {
 		r_value = m_ptr[position / BIT_COUNT] & (1 << BIT_COUNT - 1 - position % BIT_COUNT); 
 	}
 
+//copy contructor for Reference class
+Vector<bool>::Reference::Reference(const Reference& obj)
+{
+	this->r_value = obj.r_value;
+}
+//move constructor for Reference class
+Vector<bool>::Reference::Reference(Reference&& obj)
+{
+	if (r_value != obj.r_value) {
+		r_value = obj.r_value;
+		flip();
+	}
 
+	delete[] obj.r_ptr;
+	obj.r_ptr = nullptr;
+
+}
 //parameterized contructor
 //Initializer_list constructor
 //copy contructor
@@ -241,7 +257,36 @@ void Vector<bool>::shrink_to_fit()
 }
 
 //functions which return references 
+//
+//function which return fake reference to given position
+Vector<bool>::Reference Vector<bool>::at(size_t position)
+{
+	if (position >= this->m_size) {
+		std::cout << "Segmentation fault" << std::endl;
+	}
 
+	return Vector<bool>::Reference(m_ptr, position);
+}
+
+//function which return fake reference to first element
+Vector<bool>::Reference Vector<bool>::front()
+{
+	if (!m_ptr) {
+		std::cout << "Segmentation fault" << std::endl;
+	}
+	
+	return Vector<bool>::Reference(m_ptr, 0);
+}	
+
+//function which return fake reference to last selement
+Vector<bool>::Reference Vector<bool>::back()
+{
+	if (!m_ptr) {
+		std::cout << "Segmentation fault" << std::endl;
+	}
+	
+	return Vector<bool>::Reference(m_ptr, m_size - 1);
+}
 //returns a direct pointer to the memory array used internally by the vector to store its owned elements
 unsigned short* Vector<bool>::data()
 {
@@ -301,14 +346,48 @@ void Vector<bool>::pop_back()
 void Vector<bool>::insert(size_t position, bool value)
 {
 
-	if (!this->m_ptr || position >= this->m_size) {
-		std::cout << "Segmantation fault." << std::endl;
-		exit(0);
+	if (position >= this->m_size) {
+		if (position == 0 && this->m_size == 0) {
+			if (this->m_ptr == nullptr) {
+				this->allocator();
+			}
+
+			this->push_back(value);
+			return;
+		} else {
+			std::cout << "Segmantation fault." << std::endl;
+			exit(0);
+		}
 	} 
+	
 	if (m_size + 1 > m_capacity) {
 		reallocator(1);
 	}
+	
+	this->m_index = this->m_size / BIT_COUNT;
+	size_t pos_index = position / BIT_COUNT;
+	bool LSB = false;
 
+	for (size_t i = 0; i < this->m_index - pos_index; ++i) {
+		this->shift_to_right(&m_ptr[this->m_index - i]);
+		
+		LSB = bool(this->m_ptr[this->m_index - 1 - i] & 1);
+		if(LSB) {
+			this->m_ptr[this->m_index] ^= 1 << (BIT_COUNT - 1);
+		} 
+	}
+	
+	this->clear_bit(&this->m_ptr[pos_index], BIT_COUNT - 1);	
+	for (int i = BIT_COUNT - 1; i >= position % BIT_COUNT; --i) {
+		bit_swap(&m_ptr[pos_index], i, i - 1);
+	}
+
+	if(value) {
+		this->m_ptr[pos_index] ^= 1 << (BIT_COUNT - 1 - position % BIT_COUNT);
+	}
+	
+	++this->m_size;
+	this->shift_to_right(&m_shifter);
 }
 
 //removes from the vector single element (position) 
@@ -331,8 +410,8 @@ void Vector<bool>::swap(Vector<bool>& obj)
 //exchanges bits at positions i and j
 void Vector<bool>::bit_swap(unsigned short* ptr, unsigned short i, unsigned short j)
 {
-	i = BIT_COUNT - i;
-	j = BIT_COUNT - j;
+	i = BIT_COUNT - 1 - i;
+	j = BIT_COUNT - 1 - j;
 
 	bool i_bit = bool(*ptr & (1 << i));
 	bool j_bit = bool(*ptr & (1 << j));
@@ -379,6 +458,32 @@ void Vector<bool>::print()
 	}
 	std::cout << std::endl;
 }
+//shifter function for doing one shift to right and guarantees that MSB is 0
+void Vector<bool>::shift_to_right(unsigned short int* ptr)
+{
+	*ptr >>= 1;
+	short unsigned int MSB = 1 << (BIT_COUNT - 1);
+	-- this->m_cleaner;
+	this->m_cleaner ^= MSB;
+	*ptr &= this->m_cleaner;
+	this->m_cleaner = 0;
+}
+
+//clean_bit function which reset current bit
+void Vector<bool>::clear_bit(unsigned short int* ptr, size_t position)
+{	
+	short unsigned int MSB = 1 << (BIT_COUNT - 1 - position);
+	-- this->m_cleaner;
+	this->m_cleaner ^= MSB;
+	*ptr &= this->m_cleaner;
+	this->m_cleaner = 0;
+}
+
+//flip funchtion for assignment operator
+void Vector<bool>::Reference::flip()
+{
+	r_ptr[r_index / BIT_COUNT] ^= 1 << (BIT_COUNT - (r_index % BIT_COUNT) - 1);
+}
 
 //operator overloading functions
 //
@@ -394,6 +499,20 @@ Vector<bool>::Reference::operator bool()
 	return r_value;
 }
 
+//bool assgnment operator
+void Vector<bool>::Reference::operator=(const Reference& obj)
+{
+	if (this->r_value != obj.r_value) {
+		return flip();
+	}
+}
+
+void Vector<bool>::Reference::operator=(const bool value)
+{
+	if (this->r_value != value) {
+		return flip();
+	}
+}
 
 
 

@@ -64,7 +64,7 @@ public:
 	void push_back(bool value);
 	void pop_back();
 	void insert(size_t position, bool value);
-	void insert(size_t position, size_t count, bool value);
+//	void insert(size_t position, size_t count, bool value);
 //	void erase(size_t position);
 //	void erase(size_t first, size_t last);
 	void swap(Vector<bool>& obj);

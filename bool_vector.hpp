@@ -15,12 +15,13 @@ Vector<bool>::Reference::Reference(unsigned short* m_ptr, size_t position):
 	r_index(position) {
 		r_value = m_ptr[position / BIT_COUNT] & (1 << BIT_COUNT - 1 - position % BIT_COUNT); 
 	}
-
+/*
 //copy contructor for Reference class
 Vector<bool>::Reference::Reference(const Reference& obj)
 {
 	this->r_value = obj.r_value;
 }
+
 //move constructor for Reference class
 Vector<bool>::Reference::Reference(Reference&& obj)
 {
@@ -31,8 +32,9 @@ Vector<bool>::Reference::Reference(Reference&& obj)
 
 	delete[] obj.r_ptr;
 	obj.r_ptr = nullptr;
-
 }
+*/
+
 //parameterized contructor
 //Initializer_list constructor
 //copy contructor
@@ -205,22 +207,22 @@ void Vector<bool>::resize(size_t new_size, bool value)
 }
 
 //function that reserves a space...
-//he function call does not cause a reallocation 
+//the function call does not cause a reallocation 
 //if new_capacity is not greater than the current vector capacity
 void Vector<bool>::reserve(size_t new_capacity)
 {
 	if (new_capacity > this->m_capacity) {
 		if (this->m_ptr == nullptr) {
 			if (new_capacity % BIT_COUNT) {
-				Vector<bool>::allocator(new_capacity / BIT_COUNT + 1);
+				this->allocator(new_capacity / BIT_COUNT + 1);
 			} else {
-				Vector<bool>::allocator(new_capacity / BIT_COUNT);
+				this->allocator(new_capacity / BIT_COUNT);
 			}
 		} else { 
 			if (new_capacity % BIT_COUNT) {
-				Vector<bool>::reallocator(this->m_capacity / BIT_COUNT - (new_capacity / this->m_capacity + 1));
+				this->reallocator(this->m_capacity / BIT_COUNT - (new_capacity / this->m_capacity + 1));
 			} else {
-				Vector<bool>::reallocator(this->m_capacity / BIT_COUNT -  new_capacity / this->m_capacity);
+				this->reallocator(this->m_capacity / BIT_COUNT -  new_capacity / this->m_capacity);
 			}
 		}
 	} 
@@ -238,7 +240,8 @@ bool Vector<bool>::empty()
 void Vector<bool>::shrink_to_fit()
 {
 	if (this->m_capacity > this->m_size) {
-		size_t deleted_count = this->m_capacity - (this->m_size % BIT_COUNT + 1) * BIT_COUNT;
+		size_t deleted_count = this->m_capacity - (this->m_size / BIT_COUNT + 1) * BIT_COUNT;
+		
 		if (deleted_count) {
 			this->m_capacity -= deleted_count;
 			unsigned short* tmp_ptr = new unsigned short[this->m_capacity / BIT_COUNT];
@@ -271,7 +274,7 @@ Vector<bool>::Reference Vector<bool>::at(size_t position)
 //function which return fake reference to first element
 Vector<bool>::Reference Vector<bool>::front()
 {
-	if (!m_ptr) {
+	if (!m_size) {
 		std::cout << "Segmentation fault" << std::endl;
 	}
 	
@@ -281,7 +284,7 @@ Vector<bool>::Reference Vector<bool>::front()
 //function which return fake reference to last selement
 Vector<bool>::Reference Vector<bool>::back()
 {
-	if (!m_ptr) {
+	if (!m_size) {
 		std::cout << "Segmentation fault" << std::endl;
 	}
 	
@@ -300,9 +303,9 @@ unsigned short* Vector<bool>::data()
 void Vector<bool>::push_back(bool value)
 {
 	if (this->m_ptr == nullptr) {
-		Vector<bool>::allocator();
+		this->allocator();
 	} else if (this->m_size + 1 > this->m_capacity) {
-		Vector<bool>::reallocator(1);
+		this->reallocator(1);
 	}
 
 	this->m_index = this->m_size / BIT_COUNT;
@@ -311,12 +314,7 @@ void Vector<bool>::push_back(bool value)
 		this->m_ptr[m_index] ^= m_shifter;
 	}
 	
-	--this->m_cleaner;
-	this->m_cleaner ^= this->m_shifter;
-	this->m_shifter >>= 1;
-	this->m_shifter &= this->m_cleaner;
-	this->m_cleaner = 0;
-	
+	this->shift_to_right(&m_shifter);	
 	if (!this->m_shifter) {
 		this->m_shifter = (1 << (BIT_COUNT - 1));
 	}
@@ -332,14 +330,11 @@ void Vector<bool>::pop_back()
 		exit(0);
 	} 
 	
-	this->m_shifter <<= 1;
-	--this->m_cleaner;
-	this->m_cleaner ^= this->m_shifter;
 	this->m_index = this->m_size / BIT_COUNT;
-	this->m_ptr[m_index] &= this->m_cleaner;
+	size_t BIT = this->m_size % BIT_COUNT - 1;
+	this->clear_bit(&m_ptr[m_index], BIT); 
 	
 	--this->m_size;	
-	this->m_cleaner = 0;
 }
 
 // functions extend the vector by inserting new elements before the element at the specified position
@@ -437,7 +432,7 @@ void Vector<bool>::clear()
 	}
 }
 
-//print function for my testes
+//print function for my tests
 void Vector<bool>::print()
 {	
 	unsigned short printer = 1 << (BIT_COUNT - 1);
@@ -447,15 +442,18 @@ void Vector<bool>::print()
 		
 		for (size_t j = BIT_COUNT; j > 0; --j) {
 			std::cout << bool(this->m_ptr[i] & printer) << " ";
-			printer >>= 1;
+			this->shift_to_right(&printer);
  		}
  		
  	}
  		printer = 1 << (BIT_COUNT - 1);
- 		for (unsigned short j = this->m_shifter << 1; j > 0; j <<= 1) {
- 			std::cout << bool(this->m_ptr[i] & printer) << " ";
-			printer >>= 1;
-	}
+
+		if(printer != this->m_shifter) {
+ 			for (unsigned short j = this->m_shifter << 1; j > 0; j <<= 1) {
+ 				std::cout << bool(this->m_ptr[i] & printer) << " ";
+				this->shift_to_right(&printer);
+			}
+		}
 	std::cout << std::endl;
 }
 //shifter function for doing one shift to right and guarantees that MSB is 0

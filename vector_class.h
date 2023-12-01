@@ -16,8 +16,8 @@ public:
 	~Vector();
 	
 // member functions prototypes
-	void allocator(size_t new_capacity = 1);
-	void reallocator(size_t new_capacity = 2);
+	void allocator(size_t new_capacity = 2);
+	void reallocator(size_t new_capacity = 0);
 	size_t size();
 	size_t max_size();
 	size_t capacity();

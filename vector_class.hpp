@@ -37,7 +37,7 @@ Vector<T>::Vector(std::initializer_list<T> list)
 template <typename T>
 Vector<T>::Vector(const Vector<T>& obj)
 {
-	if (this->m_ptr != &obj) {
+	if (this->m_ptr != obj.m_ptr) {
 		this->m_size = obj.m_size;
 		this->m_capacity = obj.m_capacity;
 		this->m_ptr = new T[obj.m_capacity];
@@ -52,10 +52,11 @@ Vector<T>::Vector(const Vector<T>& obj)
 template <typename T>
 Vector<T>::Vector(Vector<T>&& obj)
 {
-	this->m_size = obj.m_size;
-	this->m_capacity = obj.m_capacity;
-	this->m_ptr = obj.m_ptr;
-
+	if (this->m_ptr != obj.m_ptr) {
+		this->m_size = obj.m_size;
+		this->m_capacity = obj.m_capacity;
+		this->m_ptr = obj.m_ptr;
+	}
 }
 
 //destructor
@@ -83,7 +84,11 @@ void Vector<T>::allocator(size_t new_capacity)
 template <typename T>
 void Vector<T>::reallocator(size_t new_capacity)
 {
-	this->m_capacity += new_capacity;
+	if (new_capacity == 0) {
+		this->m_capacity *= 1.5; 
+	} else {
+		this->m_capacity += new_capacity;
+	}
 	
 	T* tmp_ptr = new T[this->m_capacity];
 	for (size_t i = 0; i < m_size; ++i) {
@@ -119,20 +124,24 @@ template <typename T>
 void Vector<T>::resize(size_t new_size, T value)
 {
 	if (this->m_ptr == nullptr) {
-		Vector<T>::allocator(new_size);
+		if (new_size != 0) {
+			this->allocator(new_size);
+		}
 	} else if (new_size < this->m_size) {
 		this->m_size = new_size;
 	} else if (new_size > this->m_size) {
 		if (new_size > this->m_capacity) {
-			Vector<T>::reallocator(new_size);
+			this->reallocator(this->m_capacity - new_size);
 		} 
 	} else if (new_size == this->m_size) {
 		return;
 	}
 	
 	if (new_size > this->m_size) {
-		for (size_t i = this->m_size; i < new_size; ++i) {
-			this->m_ptr[i] = value;
+		if (value) {
+			for (size_t i = this->m_size; i < new_size; ++i) {
+				this->m_ptr[i] = value;
+			}
 		}
 	}
 
@@ -148,9 +157,9 @@ void Vector<T>::reserve(size_t new_capacity)
 {
 	if (new_capacity > this->m_capacity) {
 		if (this->m_ptr == nullptr) {
-			Vector<T>::allocator(new_capacity);
+			this->allocator(new_capacity);
 		} else { 
-			Vector<T>::reallocator(new_capacity);
+			this->reallocator(this->m_capacity - new_capacity);
 		}
 	} 
 
@@ -196,7 +205,7 @@ T& Vector<T>::at(size_t index)
 template <typename T>
 T& Vector<T>::front()
 {
-	if (!this->m_ptr) {
+	if (!this->m_size) {
 		std::cout << "Segmantation fault." << std::endl;
 		exit(0);
 	} 
@@ -207,7 +216,7 @@ T& Vector<T>::front()
 template <typename T>
 T& Vector<T>::back()
 {
-	if (!this->m_ptr) {
+	if (!this->m_size) {
 		std::cout << "Segmantation fault." << std::endl;
 		exit(0);
 	} 
@@ -227,9 +236,9 @@ template <typename T>
 void Vector<T>::assign(size_t count, T value)
 {
 	if (this->m_ptr == nullptr) {
-		Vector<T>::allocator(count);
+		this->allocator(count);
 	} else if (count > this->m_capacity) {
-		Vector<T>::reallocator(count);
+		this->reallocator(count - this->m_capacity);
 	}
 	
 	for (size_t i = 0; i < count; ++i) {
@@ -244,13 +253,13 @@ template <typename T>
 void Vector<T>::push_back(T value)
 {
 	if (this->m_ptr == nullptr) {
-		Vector<T>::allocator();
+		this->allocator();
 	} else if (this->m_size + 1 > this->m_capacity) {
-		Vector<T>::reallocator(1);
+		this->reallocator();
 	}
 	
 	this->m_ptr[m_size] = value;
-	this->m_size += 1;
+	++this->m_size;
 }
 
 //removes the last element in the vector
@@ -258,11 +267,11 @@ template <typename T>
 void Vector<T>::pop_back()
 {
 	if (!this->m_size) {
-		std::cout << "Segmantation fault." << std::endl;
+		std::cout << "Out of range." << std::endl;
 		exit(0);
 	} 
 	
-	--(this->m_size);	
+	--this->m_size;	
 }
 
 // functions extend the vector by inserting new elements before the element at the specified position
@@ -270,14 +279,16 @@ template <typename T>
 void Vector<T>::insert(size_t position, T value)
 {
 	if (position >= this->m_size) {
-		if (this->m_size != 0 && position != 0) {
-			std::cout << "Segmantation fault." << std::endl;
+		if (this->m_size == 0 && position == 0) {
+			this->allocator();
+		} else {
+			std::cout << "Out of range." << std::endl;
 			exit(0);
 		}
 	} 
 	
 	if (this->m_size + 1 > this->m_capacity) {
-		Vector<T>::reallocator(1);
+		this->reallocator(1);
 	}
 	
 	for (int i = this->m_size - 1; i >= position; --i) {
@@ -292,14 +303,16 @@ template <typename T>
 void Vector<T>::insert(size_t position, size_t count, T value)
 {
 	if (position >= this->m_size) {
-		if (this->m_size != 0 && position != 0) {
-			std::cout << "Segmantation fault." << std::endl;
+		if (this->m_size == 0 && position == 0) {
+			this->allocator(count);
+		} else {
+			std::cout << "Out of range." << std::endl;
 			exit(0);
 		}
 	} 
 	
 	if (this->m_size + count > this->m_capacity) {
-		Vector<T>::reallocator(count);
+		this->reallocator(this->m_capacity - count);
 	}
 	
 	for (int i = this->m_size + count; i >= position + count; --i) {
@@ -317,7 +330,7 @@ template <typename T>
 void Vector<T>::erase(size_t position)
 {
 	if (position >= this->m_size) {
-		std::cout << "Segmantation fault." << std::endl;
+		std::cout << "Out of range." << std::endl;
 		exit(0);
 	} 
 	
@@ -325,7 +338,7 @@ void Vector<T>::erase(size_t position)
 		this->m_ptr[i] =  this->m_ptr[i + 1];
 	}
 	
-	this->m_size -= 1;
+	--this->m_size;
 }
 
 //removes from the vector a range of elements
@@ -334,10 +347,10 @@ void Vector<T>::erase(size_t first, size_t last)
 {
 	if (first >= last) {
 		std::cout << "Invalid input" << std::endl;
-		return;
+		exit(0);
 	}
 	if (first >= this->m_size || last >= this->m_size) {
-		std::cout << "Segmantation fault." << std::endl;
+		std::cout << "Out of range." << std::endl;
 		exit(0);
 	} 
 	
@@ -366,6 +379,10 @@ void Vector<T>::clear()
 	if (this->m_size) {
 		m_size = 0;
 	}
+
+	for (size_t i = 0; i < this->m_capacity; ++i) {
+		this->m_ptr[i] = 0;
+	}
 }
 
 //operator overloding functions
@@ -384,7 +401,7 @@ T& Vector<T>::operator[](size_t index)
 template <typename T>
 Vector<T>& Vector<T>::operator= (const Vector& obj)
 {
-	if (this->m_ptr != &obj) {
+	if (this->m_ptr != obj.m_ptr) {
 		if (this->m_ptr) {
 			delete[] this->m_ptr;
 		}
@@ -403,10 +420,15 @@ Vector<T>& Vector<T>::operator= (const Vector& obj)
 template <typename T>
 Vector<T>& Vector<T>::operator= (Vector&& obj)
 {
+	if (this->m_ptr != obj.m_ptr) {
+		if(this->m_ptr) {
+			delete[] this->m_ptr;
+		}
+		this->m_ptr = obj.m_ptr;
+	}
+
 	this->m_size = obj.m_size;
 	this->m_capacity = obj.m_capacity;
-	this->m_ptr = obj.m_ptr;
-
 	obj.m_size = 0;
 	obj.m_capacity = 0;
 	obj.m_ptr = nullptr;

@@ -9,38 +9,95 @@ Vector<bool>::Vector()
 	this->m_shifter = (1 << (BIT_COUNT - 1));
 	this->m_ptr = nullptr;
 }
+
+//parametrized constructor
+Vector<bool>::Vector(size_t count, bool value)
+{
+	this->m_size = count;
+	this->m_capacity = (count / BIT_COUNT + 1) * BIT_COUNT;
+	this->m_false_capacity = this->m_capacity;
+	this->m_cleaner = 0;
+	this->m_index = this->m_size / BIT_COUNT;
+	this->m_shifter = 1 << (BIT_COUNT - 1 - this->m_size % BIT_COUNT);
+	this->m_ptr = new short unsigned int[this->m_index + 1];
+
+	if (value) {
+		for (size_t i = 0; i < this->m_index; ++i) {
+			this->m_ptr[i] -= 1;
+		}
+
+		if (this->m_size % BIT_COUNT) {
+			for (short unsigned int setter = 1 << (BIT_COUNT - 1); setter != this->m_shifter; shift_to_right(&setter)) {
+				this->m_ptr[this->m_index] ^= setter;
+			}
+		}
+	}
+}
+
+//initializer list constructor
+Vector<bool>::Vector(std::initializer_list<bool> list)
+{
+	this->m_size = list.size();
+	this->m_capacity = (m_size / BIT_COUNT + 1) * BIT_COUNT;
+	this->m_false_capacity = this->m_capacity;
+	this->m_cleaner = 0;
+	this->m_index = this->m_size / BIT_COUNT;
+	this->m_shifter = 1 << (BIT_COUNT - 1 - this->m_size % BIT_COUNT);
+	this->m_ptr = new short unsigned int[this->m_index + 1];
+
+	for (size_t i = 0; i <= this->m_index; ++i) {
+		short unsigned int setter = 1 << (BIT_COUNT - 1); 
+		for (size_t j = 0, k = i * BIT_COUNT + j; j < BIT_COUNT; ++j, ++k) {
+			if (list.begin()[k]) {
+				this->m_ptr[i] ^= setter;
+			}
+			shift_to_right(&setter);
+		}
+	}
+}
+
 //parametrized constructor for Reference class
 Vector<bool>::Reference::Reference(unsigned short* m_ptr, size_t position):
 	r_ptr(m_ptr),
 	r_index(position) {
 		r_value = m_ptr[position / BIT_COUNT] & (1 << BIT_COUNT - 1 - position % BIT_COUNT); 
 	}
-/*
-//copy contructor for Reference class
-Vector<bool>::Reference::Reference(const Reference& obj)
-{
-	this->r_value = obj.r_value;
-}
 
-//move constructor for Reference class
-Vector<bool>::Reference::Reference(Reference&& obj)
-{
-	if (r_value != obj.r_value) {
-		r_value = obj.r_value;
-		flip();
-	}
-
-	delete[] obj.r_ptr;
-	obj.r_ptr = nullptr;
-}
-*/
-
-//parameterized contructor
-//Initializer_list constructor
 //copy contructor
+Vector<bool>::Vector(const Vector<bool>& obj)
+{
+	if (this->m_ptr != obj.m_ptr) {
+		this->m_size = obj.m_size;
+		this->m_capacity = obj.m_capacity;
+		this->m_false_capacity = obj.m_false_capacity;
+		this->m_cleaner = 0;
+		this->m_index = obj.m_index;
+		this->m_shifter = obj.m_shifter;
+		this->m_ptr = nullptr;
+		if (obj.m_ptr) {
+			m_ptr = new short unsigned int[this->m_capacity / BIT_COUNT];
+		}
+
+		for (size_t i = 0; i < this->m_capacity / BIT_COUNT; ++i) {
+			this->m_ptr[i] = obj.m_ptr[i];
+		}
+	}
+}
+
 //move contructor
-
-
+Vector<bool>::Vector(Vector<bool>&& obj)
+{
+	if (this->m_ptr != obj.m_ptr) {
+		this->m_size = obj.m_size;
+		this->m_capacity = obj.m_capacity;
+		this->m_false_capacity = obj.m_false_capacity;
+		this->m_cleaner = 0;
+		this->m_index = obj.m_index;
+		this->m_shifter = obj.m_shifter;
+		this->m_ptr = obj.m_ptr;
+		obj.m_ptr = nullptr;
+	}
+}
 //destructor
 Vector<bool>::~Vector()
 {
@@ -101,109 +158,71 @@ void Vector<bool>::resize(size_t new_size, bool value)
 	if (new_size == this->m_size) {
 		return;
 	} else if (this->m_ptr == nullptr) {
-		std::cout << "Segmentation fault" << std::endl;
-		exit(0);
+		this->allocator(new_size / BIT_COUNT + 1);
 	} else if (new_size == 0) {
-		Vector<bool>::clear();
+		this->clear();
 	}
 	
 	if (new_size > this->m_size) {
 		if (new_size > this->m_capacity) {
-			if ((this->m_capacity - this->m_size) % BIT_COUNT != 0) {
-				this->m_index = this->m_size / BIT_COUNT;
-				
-				if (value) {
-					for(size_t i = (this->m_capacity - this->m_size) % BIT_COUNT; i > 0; --i) {
-						Vector<bool>::push_back(true);
-					}
-				}
-				
-				Vector<bool>::reallocator((new_size - this->m_capacity) / BIT_COUNT + 1);
-				
-				if (value) {
-					if (this->m_capacity % new_size) {
-						for (size_t i = this->m_index + 1; i < this->m_capacity / BIT_COUNT - 1; ++i) {
-							this->m_ptr[i] -= 1;
-							this->m_index += 1;
-						}
-						
-						this->m_shifter = (1 << (BIT_COUNT - 1));
-						for(size_t i = BIT_COUNT - (this->m_capacity - new_size) % BIT_COUNT; i > 0; --i) {
-							Vector<bool>::push_back(true);
-						}
-					} else {
-						for (size_t i = this->m_index + 1; i < this->m_capacity / BIT_COUNT - 1; ++i) {
-							this->m_ptr[i] -= 1;
-							this->m_index += 1;
-						}
-						
-						this->m_shifter = (1 << (BIT_COUNT - 1));
-					}
-				}
-				
+			if (new_size % BIT_COUNT) {
+				this->reallocator((new_size - this->m_capacity) / BIT_COUNT + 1);
 			} else {
-				this->m_index = this->m_size / BIT_COUNT;
-				
-				Vector<bool>::reallocator((new_size - this->m_capacity) / BIT_COUNT + 1);
-				
-				if (value) {
-					if (this->m_capacity % new_size) {
-						for (size_t i = this->m_index + 1; i < this->m_capacity / BIT_COUNT - 1; ++i) {
-							this->m_ptr[i] -= 1;
-							this->m_index += 1;
-						}
-						
-						this->m_shifter = (1 << (BIT_COUNT - 1));
-						for(size_t i = BIT_COUNT - (this->m_capacity - new_size) % BIT_COUNT; i > 0; --i) {
-							Vector<bool>::push_back(true);
-						}
-					} else {
-						for (size_t i = this->m_index + 1; i < this->m_capacity / BIT_COUNT - 1; ++i) {
-							this->m_ptr[i] -= 1;
-							this->m_index += 1;
-						}
-						
-						this->m_shifter = (1 << (BIT_COUNT - 1));
+				this->reallocator((new_size - this->m_capacity) / BIT_COUNT);
+			}
+		}
+		if (value) {
+			if (this->m_shifter != 1 << (BIT_COUNT - 1)) {
+				while (this->m_size != new_size) {
+					if (this->m_shifter == 1 << (BIT_COUNT - 1)) {
+						break;
+					}
+
+					this->push_back(value);
+				}
+			}
+
+			if (this->m_size != new_size) {	
+				for (this->m_index = this->m_size / BIT_COUNT; this->m_index < new_size / BIT_COUNT; ++this->m_index) {
+					this->m_ptr[this->m_index] -= 1;
+				}
+
+				this->m_size =  this->m_index * BIT_COUNT;
+
+				if (this->m_size != new_size) {
+					for (size_t i = 0; i < new_size % BIT_COUNT; ++i) {
+						this->push_back(value);
 					}
 				}
 			}
 		} else {
-			this->m_index = this->m_size / BIT_COUNT;
-				
-			if (value) {
-				for(size_t i = BIT_COUNT - (this->m_capacity - new_size); i > 0; --i) {
-					Vector<bool>::push_back(true);
-				}
-			}
-		}	
+			this->m_shifter = 1 << BIT_COUNT - 1 - (new_size % BIT_COUNT);
+		}
+
+		this->m_size = new_size;
 	} else if (new_size < this->m_size) {
 		this->m_index = this->m_size / BIT_COUNT;
 		
 		for (size_t i = this->m_index; i > new_size / BIT_COUNT; --i) {
+			if (this->m_size % BIT_COUNT == 0) {
+				--this->m_index;
+				continue;
+			}
 			this->m_ptr[i] = 0;
-			this->m_index -= 1;
+			--this->m_index;
 		}
 		
-		this->m_shifter = 0;
 		this->m_size = (this->m_index + 1) * BIT_COUNT;
-		
-		for (size_t i = 0; i < this->m_size - new_size; ++i) {
-			if (!this->m_shifter) {
-				this->m_shifter = 1;
-			} else {
-				this->m_shifter <<= 1;
+		if (this->m_size != new_size) {
+			for (size_t i = BIT_COUNT - 1; i >= new_size % BIT_COUNT; --i) {
+				this->clear_bit(&m_ptr[new_size / BIT_COUNT], i);
 			}
-			
-			--this->m_cleaner;
-			this->m_cleaner ^= this->m_shifter;
-			
-			this->m_ptr[this->m_index] &= this->m_cleaner; 
-			this->m_cleaner = 0;
+
+			this->m_shifter = 1 << (BIT_COUNT - 1 - (new_size % BIT_COUNT));
 		}
 	}
 	
 	this->m_size = new_size;
-	this->m_cleaner = 0;
 }
 
 //function that reserves a space...
@@ -444,7 +463,7 @@ void Vector<bool>::print()
 			std::cout << bool(this->m_ptr[i] & printer) << " ";
 			this->shift_to_right(&printer);
  		}
- 		
+ 		std::cout << " ";
  	}
  		printer = 1 << (BIT_COUNT - 1);
 
@@ -470,9 +489,9 @@ void Vector<bool>::shift_to_right(unsigned short int* ptr)
 //clean_bit function which reset current bit
 void Vector<bool>::clear_bit(unsigned short int* ptr, size_t position)
 {	
-	short unsigned int MSB = 1 << (BIT_COUNT - 1 - position);
-	-- this->m_cleaner;
-	this->m_cleaner ^= MSB;
+	short unsigned int BIT = 1 << (BIT_COUNT - 1 - position);
+	--this->m_cleaner;
+	this->m_cleaner ^= BIT;
 	*ptr &= this->m_cleaner;
 	this->m_cleaner = 0;
 }
@@ -481,6 +500,14 @@ void Vector<bool>::clear_bit(unsigned short int* ptr, size_t position)
 void Vector<bool>::Reference::flip()
 {
 	r_ptr[r_index / BIT_COUNT] ^= 1 << (BIT_COUNT - (r_index % BIT_COUNT) - 1);
+}
+
+//fill function for setting given bits
+void Vector<bool>::fill(size_t count, bool value)
+{
+	for (size_t i = 0; i < count; ++i) {
+		this->push_back(value);	
+	}
 }
 
 //operator overloading functions

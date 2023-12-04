@@ -15,10 +15,10 @@ private:
 public:
 //constructors
 	Vector();
-//	Vector(size_t count, T value);
-//	Vector(std::initializer_list<T> list);
-//	Vector(const Vector<T>& obj);
-//	Vector(Vector<T>&& obj);
+	Vector(size_t count, bool value);
+	Vector(std::initializer_list<bool> list);
+	Vector(const Vector<bool>& obj);
+	Vector(Vector<bool>&& obj);
 
 //destructor
 	~Vector();
@@ -33,8 +33,6 @@ private:
 public:
 //constructors
 	Reference(unsigned short* m_ptr, size_t m_index);
-	Reference(const Reference& obj);
-	Reference(Reference&& obj);
 	
 //helper functon
 	void flip();
@@ -70,8 +68,6 @@ public:
 	void swap(Vector<bool>& obj);
 	void bit_swap(unsigned short* ptr, unsigned short i, unsigned short j);
 	void clear();
-//	void emplace(bool value);
-//	void emplace_back(bool value;
 
 //helper functions
 //
@@ -81,6 +77,9 @@ public:
 	void shift_to_right(short unsigned int* ptr);
 //clean_bit function which reser current bit
 	void clear_bit(short unsigned int* ptr, size_t position = 0);
+//fill function for setting bits (given count)
+	void fill(size_t count, bool value);
+
 
 //operator overloading functions
 	Reference operator[](size_t position);
